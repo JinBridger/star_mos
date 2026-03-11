@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成图表 - 音频评估管理后台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    <style>
+        .progress-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .status-text {
+            min-height: 60px;
+        }
+        .chart-icon {
+            font-size: 4rem;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand">音频评估管理后台</span>
+            <a href="{{ url_for('admin.logout') }}" class="btn btn-outline-light btn-sm">退出</a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h4 class="mb-0">
+                            <i class="bi bi-bar-chart chart-icon d-block mb-3"></i>
+                            准备分析图表
+                        </h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="progress-container">
+                            <div class="status-text mb-4">
+                                <p class="lead" id="status-message">正在检查图表状态...</p>
+                                <small class="text-muted" id="status-detail"></small>
+                            </div>
+                            
+                            <div class="progress mb-4" style="height: 25px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 0%" id="progress-bar">
+                                    <span id="progress-text">0%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary btn-lg" id="start-generation" style="display: none;">
+                                    <i class="bi bi-play-circle me-2"></i>
+                                    开始生成图表
+                                </button>
+                                <button class="btn btn-success btn-lg" id="continue-dashboard" style="display: none;">
+                                    <i class="bi bi-arrow-right-circle me-2"></i>
+                                    进入管理后台
+                                </button>
+                                <button class="btn btn-outline-secondary" id="refresh-status" style="display: none;">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>
+                                    刷新状态
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let isGenerating = false;
+
+        // DOM elements
+        const statusMessage = document.getElementById('status-message');
+        const statusDetail = document.getElementById('status-detail');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const startBtn = document.getElementById('start-generation');
+        const continueBtn = document.getElementById('continue-dashboard');
+        const refreshBtn = document.getElementById('refresh-status');
+
+        // Check initial status
+        checkProgress();
+
+        // Event listeners
+        startBtn.addEventListener('click', startGeneration);
+        continueBtn.addEventListener('click', () => {
+            window.location.href = '{{ url_for("admin.dashboard") }}';
+        });
+        refreshBtn.addEventListener('click', checkProgress);
+
+        function checkProgress() {
+            fetch('/admin/api/chart_progress')
+                .then(response => response.json())
+                .then(data => {
+                    updateProgress(data);
+                })
+                .catch(error => {
+                    console.error('Error checking progress:', error);
+                    showError('检查状态失败，请刷新页面重试');
+                });
+        }
+
+        function updateProgress(data) {
+            const progress = Math.round(data.progress || 0);
+            
+            progressBar.style.width = progress + '%';
+            progressText.textContent = progress + '%';
+            
+            if (data.completed) {
+                statusMessage.textContent = '所有图表已准备就绪！';
+                statusDetail.textContent = `共 ${data.total_charts} 个图表已缓存`;
+                
+                progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+                progressBar.classList.add('bg-success');
+                
+                startBtn.style.display = 'none';
+                continueBtn.style.display = 'block';
+                refreshBtn.style.display = 'none';
+                
+                isGenerating = false;
+            } else if (isGenerating) {
+                statusMessage.textContent = '正在生成图表...';
+                statusDetail.textContent = `${data.cached_charts} / ${data.total_charts} 个图表已完成`;
+                
+                startBtn.style.display = 'none';
+                continueBtn.style.display = 'none';
+                refreshBtn.style.display = 'none';
+                
+                // Continue checking progress
+                setTimeout(checkProgress, 2000);
+            } else {
+                statusMessage.textContent = '需要生成分析图表';
+                statusDetail.textContent = `需要生成 ${data.total_charts} 个图表，已有 ${data.cached_charts} 个缓存`;
+                
+                startBtn.style.display = 'block';
+                continueBtn.style.display = 'none';
+                refreshBtn.style.display = 'block';
+            }
+        }
+
+        function startGeneration() {
+            if (isGenerating) return;
+            
+            isGenerating = true;
+            statusMessage.textContent = '正在生成图表...';
+            statusDetail.textContent = '请稍候，这可能需要几分钟时间';
+            
+            startBtn.style.display = 'none';
+            refreshBtn.style.display = 'none';
+            
+            fetch('/admin/api/generate_charts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusMessage.textContent = '图表生成完成！';
+                    statusDetail.textContent = `成功生成 ${data.generated_charts} / ${data.total_charts} 个图表`;
+                    
+                    progressBar.style.width = '100%';
+                    progressText.textContent = '100%';
+                    progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+                    progressBar.classList.add('bg-success');
+                    
+                    continueBtn.style.display = 'block';
+                } else {
+                    showError('图表生成过程中出现错误', data.errors);
+                }
+                isGenerating = false;
+            })
+            .catch(error => {
+                console.error('Error generating charts:', error);
+                showError('图表生成失败，请重试');
+                isGenerating = false;
+            });
+            
+            // Start progress monitoring
+            setTimeout(checkProgress, 2000);
+        }
+
+        function showError(message, errors = []) {
+            statusMessage.textContent = message;
+            
+            let detail = '';
+            if (errors && errors.length > 0) {
+                detail = '错误详情：' + errors.slice(0, 3).join('; ');
+                if (errors.length > 3) {
+                    detail += '...';
+                }
+            }
+            statusDetail.textContent = detail;
+            
+            progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped', 'bg-success');
+            progressBar.classList.add('bg-danger');
+            
+            startBtn.style.display = 'block';
+            continueBtn.style.display = 'none';
+            refreshBtn.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+.venv
+__pycache__/
+experiments/
+
+# 运行时生成的缓存文件
+app/static/cache/
+
+# 环境变量配置（含密钥，不提交）
+.env
