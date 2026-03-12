@@ -112,19 +112,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const sliders = document.querySelectorAll('input[type="range"]');
         
         sliders.forEach(slider => {
-            const valueDisplay = document.getElementById(slider.id.replace('slider_', 'value_'));
+            const ticksContainer = document.getElementById(slider.id.replace('slider_', 'ticks_'));
             
-            // Update value display when slider changes
-            slider.addEventListener('input', function() {
-                if (valueDisplay) {
-                    valueDisplay.textContent = this.value;
+            function updateTick(value) {
+                if (ticksContainer) {
+                    ticksContainer.querySelectorAll('.tick-label').forEach(label => {
+                        label.classList.toggle('active', label.dataset.value === value);
+                    });
                 }
-            });
-            
-            // Set initial value display
-            if (valueDisplay) {
-                valueDisplay.textContent = slider.value;
             }
+            
+            // Set initial active tick
+            updateTick(slider.value);
+            
+            // Update on slider change
+            slider.addEventListener('input', function() {
+                updateTick(this.value);
+            });
         });
     }
     

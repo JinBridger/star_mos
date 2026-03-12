@@ -161,50 +161,7 @@
         }
         
         .rating-scale {
-            background: white;
-            border-radius: 8px;
-            padding: 16px;
             margin-bottom: 20px;
-            border: 1px solid #e9ecef;
-        }
-        
-        .rating-scale h6 {
-            color: #495057;
-            font-weight: 600;
-            margin-bottom: 12px;
-            font-size: 0.95rem;
-        }
-        
-        .rating-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f1f3f4;
-        }
-        
-        .rating-item:last-child {
-            border-bottom: none;
-        }
-        
-        .rating-score {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-        
-        .rating-description {
-            color: #6c757d;
-            font-size: 0.9rem;
-            line-height: 1.4;
         }
         
         .system-rating {
@@ -276,6 +233,133 @@
             font-weight: 600;
             margin-bottom: 12px;
         }
+
+        /* Table layout styles */
+        .rating-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .rating-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .rating-table th, .rating-table td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #dee2e6;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .rating-table th:last-child, .rating-table td:last-child {
+            border-right: none;
+        }
+
+        .rating-table thead th {
+            background: #f1f3f5;
+            color: #343a40;
+            font-weight: 600;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            vertical-align: top;
+        }
+
+        .rating-table thead th.audio-col {
+            text-align: left;
+            width: 220px;
+        }
+
+        .rating-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .rating-table tbody tr:nth-child(odd) {
+            background-color: #f8f9fa;
+        }
+
+        .rating-table tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+
+        .rating-table .audio-cell {
+            width: 220px;
+        }
+
+        .rating-table .slider-cell {
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .table-slider-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .table-slider-wrap .slider {
+            width: 100%;
+        }
+
+        .slider-tick-labels {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 12px;
+        }
+
+        .slider-tick-labels .tick-label {
+            font-size: 0.8rem;
+            color: #adb5bd;
+            font-weight: 500;
+            line-height: 1;
+            transition: color 0.15s, font-weight 0.15s;
+            cursor: default;
+            user-select: none;
+        }
+
+        .slider-tick-labels .tick-label.active {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .metric-header-name {
+            font-size: 1rem;
+            display: block;
+        }
+
+        .metric-header-desc {
+            font-size: 0.82rem;
+            font-weight: 400;
+            color: #6c757d;
+            display: block;
+            margin-top: 2px;
+            margin-bottom: 6px;
+        }
+
+        .metric-header-scores {
+            font-size: 0.78rem;
+            color: #495057;
+            margin-top: 4px;
+        }
+
+        .metric-header-scores p {
+            margin: 1px 0;
+        }
+
+        .sample-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+        }
+
+        .ref-audio-row td {
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%) !important;
+        }
     </style>
 </head>
 <body>
@@ -283,11 +367,14 @@
         <div class="row justify-content-center">
             <div class="col-md-12">
                 <!-- Progress bar -->
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted small">第 {{ current_index }} / {{ total_questions }} 题</span>
+                    <span class="text-muted small">{{ (current_index / total_questions * 100) | round(1) }}%</span>
+                </div>
                 <div class="progress mb-4">
                     <div class="progress-bar" role="progressbar" 
                          style="width: {{ (current_index / total_questions * 100) | round(1) }}%"
                          aria-valuenow="{{ current_index }}" aria-valuemin="0" aria-valuemax="{{ total_questions }}">
-                        第 {{ current_index }} / {{ total_questions }} 题
                     </div>
                 </div>
                 
@@ -301,114 +388,79 @@
                         {% endif %}
                     </div>
                     <div class="card-body">
-                        <!-- Question content -->
+                        <!-- Question content: text prompt and reference audio -->
                         <div class="question-content">
-                            <!-- Prompt content (text only, video prompts are shown in samples section) -->
-                            {% if question.show_prompt and question.prompt %}
-                            <div class="mb-3">
-                                {% if not (question.prompt.startswith('/static/') and (question.prompt.endswith('.mp4') or question.prompt.endswith('.avi') or question.prompt.endswith('.mov'))) and not (question.prompt.startswith('/static/') and (question.prompt.endswith('.wav') or question.prompt.endswith('.mp3') or question.prompt.endswith('.flac'))) %}
-                                    <!-- Text prompt only (video/audio prompts are shown in samples section) -->
-                                    <h6>文本内容：</h6>
-                                    <div class="alert alert-info" style="border-radius: 8px; border: none; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                            {% set has_text_prompt = question.show_prompt and question.prompt and not (question.prompt.startswith('/static/') and (question.prompt.endswith('.mp4') or question.prompt.endswith('.avi') or question.prompt.endswith('.mov'))) and not (question.prompt.startswith('/static/') and (question.prompt.endswith('.wav') or question.prompt.endswith('.mp3') or question.prompt.endswith('.flac'))) %}
+                            {% set has_gt_audio = question.show_gt_audio and question.gt_audio_path %}
+                            {% set has_input_audio = question.show_prompt and question.prompt and question.prompt.startswith('/static/') and (question.prompt.endswith('.wav') or question.prompt.endswith('.mp3') or question.prompt.endswith('.flac')) %}
+                            {% set has_any_audio = has_gt_audio or has_input_audio %}
+                            <div class="row g-3 align-items-start mb-0">
+                                <!-- Text content column -->
+                                {% if has_text_prompt %}
+                                <div class="{% if has_any_audio %}col-md-6{% else %}col-12{% endif %}">
+                                    <div class="system-audio" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-color: #2196f3;">
+                                        <h6>文本内容：</h6>
                                         {{ question.prompt }}
                                     </div>
+                                </div>
                                 {% endif %}
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Generated audio for each system -->
-                            {% if question.systems %}
-                            <div class="row">
-                                {% for system in question.systems %}
-                                <div class="col-md-{% if question.task_type == 'v2a' %}6{% elif question.systems|length == 1 %}12{% elif question.systems|length == 2 %}6{% else %}4{% endif %} mb-3">
-                                    <div class="system-audio">
-                                        <h6>{{ system.system_name }}：</h6>
-                                        
-                                        <!-- For V2A tasks, show composite video (video + generated audio) -->
-                                        {% if question.task_type == 'v2a' and composite_video_paths[system.system_id] %}
-                                        <video controls class="w-100" style="max-height: 200px; border-radius: 8px;">
-                                            <source src="{{ composite_video_paths[system.system_id] }}" type="video/mp4">
-                                            您的浏览器不支持视频播放。
-                                        </video>
-                                        {% else %}
-                                        <!-- Show audio player for non-V2A tasks -->
-                                        <audio controls class="w-100">
-                                            <source src="{% if system.audio_path.startswith('/') %}{{ system.audio_path }}{% else %}/experiments/{{ experiment_name }}/{{ system.audio_path }}{% endif %}" type="audio/wav">
-                                            您的浏览器不支持音频播放。
-                                        </audio>
-                                        {% endif %}
-                                        
-                                        {% if mel_spectrograms[system.system_id + '_mel'] %}
-                                        <div class="mt-3">
-                                            <h6>频谱图：</h6>
-                                            <div class="mel-spectrogram-container">
-                                                <img src="data:image/png;base64,{{ mel_spectrograms[system.system_id + '_mel'] }}" 
-                                                     alt="{{ system.system_name }} Mel Spectrogram" 
-                                                     class="img-fluid border rounded mel-spectrogram-img"
-                                                     style="max-width: 100%; height: auto; cursor: pointer;"
-                                                     onclick="openMelModal(this.src, '{{ system.system_name }} 频谱图')">
+
+                                <!-- Reference / input audio column -->
+                                {% if has_any_audio %}
+                                <div class="{% if has_text_prompt %}col-md-6{% else %}col-12{% endif %}">
+                                    {% set audio_col_class = 'col-md-6' if (has_gt_audio and has_input_audio) else 'col-12' %}
+                                    <div class="row g-3">
+                                        <!-- Ground truth audio -->
+                                        {% if has_gt_audio %}
+                                        <div class="{{ audio_col_class }}">
+                                            <div class="system-audio" style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); border-color: #4caf50;">
+                                                <h6>参考音频：</h6>
+                                                {% if question.task_type == 'v2a' and question.prompt and question.prompt.startswith('/static/') and question.prompt.endswith('.mp4') %}
+                                                <video controls class="w-100" style="max-height: 160px; border-radius: 8px;">
+                                                    <source src="{{ question.prompt }}" type="video/mp4">
+                                                    您的浏览器不支持视频播放。
+                                                </video>
+                                                {% else %}
+                                                <audio controls class="w-100">
+                                                    <source src="{% if question.gt_audio_path.startswith('/') %}{{ question.gt_audio_path }}{% else %}/experiments/{{ experiment_name }}/{{ question.gt_audio_path }}{% endif %}" type="audio/wav">
+                                                    您的浏览器不支持音频播放。
+                                                </audio>
+                                                {% endif %}
+                                                {% if mel_spectrograms.gt_audio_mel %}
+                                                <div class="mt-2">
+                                                    <div class="mel-spectrogram-container">
+                                                        <img src="data:image/png;base64,{{ mel_spectrograms.gt_audio_mel }}"
+                                                             alt="参考音频频谱图"
+                                                             class="img-fluid border rounded mel-spectrogram-img"
+                                                             style="max-width: 100%; height: auto; cursor: pointer;"
+                                                             onclick="openMelModal(this.src, '参考音频频谱图')">
+                                                    </div>
+                                                </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                         {% endif %}
-                                    </div>
-                                </div>
-                                {% endfor %}
-                                
-                                <!-- Input audio (for SR tasks) -->
-                                {% if question.show_prompt and question.prompt and question.prompt.startswith('/static/') and (question.prompt.endswith('.wav') or question.prompt.endswith('.mp3') or question.prompt.endswith('.flac')) %}
-                                <div class="col-md-{% if question.systems|length == 1 %}12{% elif question.systems|length == 2 %}6{% else %}4{% endif %} mb-3">
-                                    <div class="system-audio" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border-color: #ff9800;">
-                                        <h6>输入音频：</h6>
-                                        <audio controls class="w-100">
-                                            <source src="{% if question.prompt.startswith('/') %}{{ question.prompt }}{% else %}/experiments/{{ experiment_name }}/{{ question.prompt }}{% endif %}" type="audio/wav">
-                                            您的浏览器不支持音频播放。
-                                        </audio>
-                                        
-                                        {% if mel_spectrograms.prompt_mel %}
-                                        <div class="mt-3">
-                                            <h6>频谱图：</h6>
-                                            <div class="mel-spectrogram-container">
-                                                <img src="data:image/png;base64,{{ mel_spectrograms.prompt_mel }}" 
-                                                     alt="Input Audio Mel Spectrogram" 
-                                                     class="img-fluid border rounded mel-spectrogram-img"
-                                                     style="max-width: 100%; height: auto; cursor: pointer;"
-                                                     onclick="openMelModal(this.src, '输入音频频谱图')">
-                                            </div>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% endif %}
-                                
-                                <!-- Ground truth audio -->
-                                {% if question.show_gt_audio and question.gt_audio_path %}
-                                <div class="col-md-{% if question.task_type == 'v2a' %}6{% elif question.systems|length == 1 %}12{% elif question.systems|length == 2 %}6{% else %}4{% endif %} mb-3">
-                                    <div class="system-audio" style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); border-color: #4caf50;">
-                                        <h6>参考音频：</h6>
-                                        
-                                        <!-- For V2A tasks, show original video (video + reference audio) -->
-                                        {% if question.task_type == 'v2a' and question.prompt and question.prompt.startswith('/static/') and question.prompt.endswith('.mp4') %}
-                                        <video controls class="w-100" style="max-height: 200px; border-radius: 8px;">
-                                            <source src="{{ question.prompt }}" type="video/mp4">
-                                            您的浏览器不支持视频播放。
-                                        </video>
-                                        {% else %}
-                                        <!-- Show audio player for non-V2A tasks -->
-                                        <audio controls class="w-100">
-                                            <source src="{% if question.gt_audio_path.startswith('/') %}{{ question.gt_audio_path }}{% else %}/experiments/{{ experiment_name }}/{{ question.gt_audio_path }}{% endif %}" type="audio/wav">
-                                            您的浏览器不支持音频播放。
-                                        </audio>
-                                        {% endif %}
-                                        
-                                        {% if mel_spectrograms.gt_audio_mel %}
-                                        <div class="mt-3">
-                                            <h6>频谱图：</h6>
-                                            <div class="mel-spectrogram-container">
-                                                <img src="data:image/png;base64,{{ mel_spectrograms.gt_audio_mel }}" 
-                                                     alt="Ground Truth Audio Mel Spectrogram" 
-                                                     class="img-fluid border rounded mel-spectrogram-img"
-                                                     style="max-width: 100%; height: auto; cursor: pointer;"
-                                                     onclick="openMelModal(this.src, '参考音频频谱图')">
+
+                                        <!-- Input audio (SR tasks) -->
+                                        {% if has_input_audio %}
+                                        <div class="{{ audio_col_class }}">
+                                            <div class="system-audio" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border-color: #ff9800;">
+                                                <h6>输入音频：</h6>
+                                                <audio controls class="w-100">
+                                                    <source src="{% if question.prompt.startswith('/') %}{{ question.prompt }}{% else %}/experiments/{{ experiment_name }}/{{ question.prompt }}{% endif %}" type="audio/wav">
+                                                    您的浏览器不支持音频播放。
+                                                </audio>
+                                                {% if mel_spectrograms.prompt_mel %}
+                                                <div class="mt-2">
+                                                    <div class="mel-spectrogram-container">
+                                                        <img src="data:image/png;base64,{{ mel_spectrograms.prompt_mel }}"
+                                                             alt="输入音频频谱图"
+                                                             class="img-fluid border rounded mel-spectrogram-img"
+                                                             style="max-width: 100%; height: auto; cursor: pointer;"
+                                                             onclick="openMelModal(this.src, '输入音频频谱图')">
+                                                    </div>
+                                                </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                         {% endif %}
@@ -416,49 +468,82 @@
                                 </div>
                                 {% endif %}
                             </div>
-                            {% endif %}
                         </div>
-                        
-                        <!-- Scoring form -->
+
+                        <!-- Scoring form: table layout -->
                         <form id="scoringForm">
-                            {% for metric_name, metric_def in metrics.items() %}
-                            <div class="metric-section mb-4">
-                                <h5>{{ metric_name }} - {{ metric_def.题目描述 }}</h5>
-                                
-                                <!-- Rating scale description -->
-                                <div class="rating-scale">
-                                    <h6>评分标准：</h6>
-                                    {% for score, description in metric_def.评分示例.items() %}
-                                    <div class="rating-item">
-                                        <div class="rating-score">{{ score }}</div>
-                                        <div class="rating-description">{{ description }}</div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                                
-                                <!-- Sliders for each system -->
-                                {% for system in question.systems %}
-                                <div class="system-rating">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <label for="slider_{{ metric_name }}_{{ system.system_id }}" class="form-label">
-                                            {{ system.system_name }}
-                                        </label>
-                                        <span class="slider-value" id="value_{{ metric_name }}_{{ system.system_id }}">{% if previous_answers and system.system_id in previous_answers and metric_name in previous_answers[system.system_id] %}{{ previous_answers[system.system_id][metric_name] }}{% else %}3{% endif %}</span>
-                                    </div>
-                                    <input type="range" 
-                                           class="slider" 
-                                           id="slider_{{ metric_name }}_{{ system.system_id }}"
-                                           name="score_{{ metric_name }}_{{ system.system_id }}"
-                                           min="{{ metric_def.评分范围[0] }}" 
-                                           max="{{ metric_def.评分范围[1] }}" 
-                                           value="{% if previous_answers and system.system_id in previous_answers and metric_name in previous_answers[system.system_id] %}{{ previous_answers[system.system_id][metric_name] }}{% else %}3{% endif %}" 
-                                           step="1"
-                                           required>
-                                </div>
-                                {% endfor %}
+                            <!-- Rating table -->
+                            <div class="rating-table-wrapper">
+                                <table class="rating-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="audio-col">样本音频</th>
+                                            {% for metric_name, metric_def in metrics.items() %}
+                                            <th>
+                                                <span class="metric-header-name"><strong>{{ metric_name }}</strong> — {{ metric_def.题目描述 }}</span>
+                                                <div class="metric-header-scores">
+                                                    {% for score, description in metric_def.评分示例.items() %}
+                                                    <p><strong>{{ score }}</strong>: {{ description }}</p>
+                                                    {% endfor %}
+                                                </div>
+                                            </th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for system in question.systems %}
+                                        <tr>
+                                            <td class="audio-cell">
+                                                <div class="sample-label">{{ system.system_name }}</div>
+                                                {% if question.task_type == 'v2a' and composite_video_paths[system.system_id] %}
+                                                <video controls class="w-100" style="max-height: 140px; border-radius: 8px;">
+                                                    <source src="{{ composite_video_paths[system.system_id] }}" type="video/mp4">
+                                                    您的浏览器不支持视频播放。
+                                                </video>
+                                                {% else %}
+                                                <audio controls class="w-100" style="margin-top:4px;">
+                                                    <source src="{% if system.audio_path.startswith('/') %}{{ system.audio_path }}{% else %}/experiments/{{ experiment_name }}/{{ system.audio_path }}{% endif %}" type="audio/wav">
+                                                    您的浏览器不支持音频播放。
+                                                </audio>
+                                                {% endif %}
+                                                {% if mel_spectrograms[system.system_id + '_mel'] %}
+                                                <div class="mt-2">
+                                                    <div class="mel-spectrogram-container">
+                                                        <img src="data:image/png;base64,{{ mel_spectrograms[system.system_id + '_mel'] }}"
+                                                             alt="{{ system.system_name }} 频谱图"
+                                                             class="img-fluid border rounded mel-spectrogram-img"
+                                                             style="max-width: 100%; height: auto; cursor: pointer;"
+                                                             onclick="openMelModal(this.src, '{{ system.system_name }} 频谱图')">
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                            </td>
+                                            {% for metric_name, metric_def in metrics.items() %}
+                                            <td class="slider-cell">
+                                                <div class="table-slider-wrap">
+                                                    <div class="slider-tick-labels" id="ticks_{{ metric_name }}_{{ system.system_id }}">
+                                                        {% for i in range(metric_def.评分范围[0], metric_def.评分范围[1] + 1) %}
+                                                        <span class="tick-label" data-value="{{ i }}">{{ i }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                    <input type="range"
+                                                           class="slider"
+                                                           id="slider_{{ metric_name }}_{{ system.system_id }}"
+                                                           name="score_{{ metric_name }}_{{ system.system_id }}"
+                                                           min="{{ metric_def.评分范围[0] }}"
+                                                           max="{{ metric_def.评分范围[1] }}"
+                                                           value="{% if previous_answers and system.system_id in previous_answers and metric_name in previous_answers[system.system_id] %}{{ previous_answers[system.system_id][metric_name] }}{% else %}3{% endif %}"
+                                                           step="1"
+                                                           required>
+                                                </div>
+                                            </td>
+                                            {% endfor %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
-                            {% endfor %}
-                            
+
                             <!-- Navigation buttons -->
                             <div class="navigation-buttons mt-4">
                                 {% if can_go_back %}
@@ -468,7 +553,7 @@
                                 {% else %}
                                 <div></div>
                                 {% endif %}
-                                
+
                                 <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
                                     {% if is_last_question %}提交{% else %}下一题{% endif %}
                                 </button>
